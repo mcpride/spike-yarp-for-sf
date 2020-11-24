@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="YarpSFTestAppType" ApplicationTypeVersion="1.0.0" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+  <Parameters>
+    <Parameter Name="WebStatelessService_ASPNETCORE_ENVIRONMENT" DefaultValue="" />
+    <Parameter Name="WebStatelessService_InstanceCount" DefaultValue="-1" />
+  </Parameters>
+  <!-- Importieren Sie das "ServiceManifest" aus dem "ServicePackage". Der "ServiceManifestName" und die "ServiceManifestVersion" 
+       sollten mit den Attributen "Name" und "Version" des ServiceManifest-Elements übereinstimmen, die 
+       in der Datei "ServiceManifest.xml" definiert werden. -->
+  <ServiceManifestImport>
+    <ServiceManifestRef ServiceManifestName="WebStatelessServicePkg" ServiceManifestVersion="1.0.0" />
+    <ConfigOverrides />
+    <EnvironmentOverrides CodePackageRef="code">
+      <EnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" Value="[WebStatelessService_ASPNETCORE_ENVIRONMENT]" />
+    </EnvironmentOverrides>
+  </ServiceManifestImport>
+  <DefaultServices>
+    <!-- Der Abschnitt unten erstellt Instanzen von Diensttypen, wenn eine Instanz dieses 
+       Anwendungstyps erstellt wird. Sie können auch mindestens eine Instanz von Diensttyp mithilfe des 
+       ServiceFabric-PowerShell-Moduls erstellen. 
+        
+       Das unten aufgeführte Attribut "ServiceTypeName" muss mit dem Namen übereinstimmen, der in der importierten Datei "ServiceManifest.xml"  definiert wird. -->
+    <Service Name="WebStatelessService" ServicePackageActivationMode="ExclusiveProcess">
+      <StatelessService ServiceTypeName="WebStatelessServiceType" InstanceCount="[WebStatelessService_InstanceCount]">
+        <SingletonPartition />
+      </StatelessService>
+    </Service>
+  </DefaultServices>
+</ApplicationManifest>
