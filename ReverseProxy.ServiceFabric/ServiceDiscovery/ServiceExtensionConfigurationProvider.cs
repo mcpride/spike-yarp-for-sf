@@ -17,13 +17,13 @@ namespace Microsoft.ReverseProxy.ServiceFabric
     {
         private ConfigurationReloadToken _delayedReloadToken = new ConfigurationReloadToken();
         private readonly ILogger<ServiceExtensionConfigurationProvider> _logger;
-        private readonly IServiceFabricCaller _serviceFabricCaller;
+        private readonly ICachedServiceFabricCaller _serviceFabricCaller;
         private readonly TimeSpan _discoveryPeriod;
         private readonly CancellationToken _cancellationToken;
 
         public ServiceExtensionConfigurationProvider(
             ILogger<ServiceExtensionConfigurationProvider> logger,
-            IServiceFabricCaller serviceFabricCaller,
+            ICachedServiceFabricCaller serviceFabricCaller,
             TimeSpan discoveryPeriod,
             CancellationToken cancellationToken
             )

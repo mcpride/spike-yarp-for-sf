@@ -14,8 +14,9 @@ namespace Microsoft.ReverseProxy.ServiceFabric.Tests
         {
             var loggerFactory = LoggerFactory.Create(_ =>{});
             var qLogger = loggerFactory.CreateLogger<QueryClientWrapper>();
-            var queryClientWrapper = new QueryClientWrapper(qLogger);
-            var sf = new ServiceFabricCaller(queryClientWrapper, new ServiceManagementClientWrapper());
+            var fabricClientFactory = new FabricClientWrapper();
+            var queryClientWrapper = new QueryClientWrapper(qLogger,fabricClientFactory);
+            var sf = new ServiceFabricCaller(queryClientWrapper, new ServiceManagementClientWrapper(fabricClientFactory));
 
             var source = new ServiceExtensionConfigurationSource(loggerFactory, sf, TimeSpan.Zero, CancellationToken.None);
             var builder = new ConfigurationBuilder();

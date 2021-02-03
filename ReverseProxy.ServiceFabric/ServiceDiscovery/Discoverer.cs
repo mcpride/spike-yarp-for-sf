@@ -24,7 +24,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
         public static string HealthReportProperty = "DynamicConfig";
 
         private readonly ILogger<Discoverer> _logger;
-        private readonly IServiceFabricCaller _serviceFabricCaller;
+        private readonly ICachedServiceFabricCaller _serviceFabricCaller;
         private readonly IServiceExtensionLabelsProvider _serviceFabricExtensionConfigProvider;
         private readonly IConfigValidator _configValidator;
         private readonly IOptionsMonitor<ServiceFabricDiscoveryOptions> _optionsMonitor;
@@ -34,7 +34,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
         /// </summary>
         public Discoverer(
             ILogger<Discoverer> logger,
-            IServiceFabricCaller serviceFabricCaller,
+            ICachedServiceFabricCaller serviceFabricCaller,
             IServiceExtensionLabelsProvider serviceFabricExtensionConfigProvider,
             IConfigValidator configValidator,
             IOptionsMonitor<ServiceFabricDiscoveryOptions> optionsMonitor)
@@ -51,6 +51,8 @@ namespace Microsoft.ReverseProxy.ServiceFabric
         {
             // Take a snapshot of current options and use that consistently for this execution.
             var options = _optionsMonitor.CurrentValue;
+
+            _serviceFabricCaller.CleanUpExpired();
 
             var discoveredBackends = new Dictionary<string, Cluster>(StringComparer.Ordinal);
             var discoveredRoutes = new List<ProxyRoute>();
@@ -230,6 +232,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
                 : new Destination
                 {
                     Address = endpointUri.ToString(),
+                    Health = healthEndpointUri.ToString(),
                     Metadata = new Dictionary<string, string>
                     {
                         {

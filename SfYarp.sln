@@ -11,7 +11,7 @@ Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "YarpSFTestApp", "YarpSFTest
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebStatelessService", "WebStatelessService\WebStatelessService.csproj", "{D4805E3F-5B8F-419C-B95D-02E1FF2A2657}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.ReverseProxy.ServiceFabric.Tests", "Microsoft.ReverseProxy.ServiceFabric.Tests\Microsoft.ReverseProxy.ServiceFabric.Tests.csproj", "{BF82A633-C390-414A-A784-98BA0EA4D680}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.ReverseProxy.ServiceFabric.Tests", "Microsoft.ReverseProxy.ServiceFabric.Tests\Microsoft.ReverseProxy.ServiceFabric.Tests.csproj", "{BF82A633-C390-414A-A784-98BA0EA4D680}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

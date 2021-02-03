@@ -26,8 +26,8 @@ namespace SfYarp
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddReverseProxy()
-                .LoadFromConfig(Configuration.GetSection("ReverseProxy"))
-                .AddServiceFabricDiscovery();
+                //.LoadFromConfig(Configuration.GetSection("ReverseProxy"))
+                .LoadFromServiceFabric(Configuration);
             services.Configure<ServiceFabricDiscoveryOptions>(Configuration.GetSection("ServiceFabricDiscovery"));
         }
 

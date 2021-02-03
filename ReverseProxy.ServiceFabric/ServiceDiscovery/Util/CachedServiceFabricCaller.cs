@@ -6,19 +6,19 @@ using System.Collections.Generic;
 using System.Fabric.Health;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.ReverseProxy.Abstractions.Telemetry;
-using Microsoft.ReverseProxy.Abstractions.Time;
+using Microsoft.Extensions.Logging;
 using Microsoft.ReverseProxy.ServiceFabric.Utilities;
+using Microsoft.ReverseProxy.Utilities;
 
 namespace Microsoft.ReverseProxy.ServiceFabric
 {
-    internal sealed class CachedServiceFabricCaller : IServiceFabricCaller
+    internal sealed class CachedServiceFabricCaller : ICachedServiceFabricCaller
     {
         public static readonly TimeSpan CacheExpirationOffset = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(60);
 
-        private readonly IOperationLogger<CachedServiceFabricCaller> _operationLogger;
-        private readonly IMonotonicTimer _timer;
+        private readonly ILogger<CachedServiceFabricCaller> _logger;
+        private readonly IClock _clock;
         private readonly IQueryClientWrapper _queryClientWrapper;
         private readonly IServiceManagementClientWrapper _serviceManagementClientWrapper;
         private readonly IPropertyManagementClientWrapper _propertyManagementClientWrapper;
@@ -33,27 +33,27 @@ namespace Microsoft.ReverseProxy.ServiceFabric
         private readonly Cache<IDictionary<string, string>> _propertiesCache;
 
         public CachedServiceFabricCaller(
-            IOperationLogger<CachedServiceFabricCaller> operationLogger,
-            IMonotonicTimer timer,
+            ILogger<CachedServiceFabricCaller> logger,
+            IClock clock,
             IQueryClientWrapper queryClientWrapper,
             IServiceManagementClientWrapper serviceManagementClientWrapper,
             IPropertyManagementClientWrapper propertyManagementClientWrapper,
             IHealthClientWrapper healthClientWrapper)
         {
-            _operationLogger = operationLogger ?? throw new ArgumentNullException(nameof(operationLogger));
-            _timer = timer ?? throw new ArgumentNullException(nameof(timer));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _queryClientWrapper = queryClientWrapper ?? throw new ArgumentNullException(nameof(queryClientWrapper));
             _serviceManagementClientWrapper = serviceManagementClientWrapper ?? throw new ArgumentNullException(nameof(serviceManagementClientWrapper));
             _propertyManagementClientWrapper = propertyManagementClientWrapper ?? throw new ArgumentNullException(nameof(propertyManagementClientWrapper));
             _healthClientWrapper = healthClientWrapper ?? throw new ArgumentNullException(nameof(healthClientWrapper));
 
-            _applicationListCache = new Cache<IEnumerable<ApplicationWrapper>>(_timer, CacheExpirationOffset);
-            _serviceListCache = new Cache<IEnumerable<ServiceWrapper>>(_timer, CacheExpirationOffset);
-            _partitionListCache = new Cache<IEnumerable<Guid>>(_timer, CacheExpirationOffset);
-            _replicaListCache = new Cache<IEnumerable<ReplicaWrapper>>(_timer, CacheExpirationOffset);
-            _serviceManifestCache = new Cache<string>(_timer, CacheExpirationOffset);
-            _serviceManifestNameCache = new Cache<string>(_timer, CacheExpirationOffset);
-            _propertiesCache = new Cache<IDictionary<string, string>>(_timer, CacheExpirationOffset);
+            _applicationListCache = new Cache<IEnumerable<ApplicationWrapper>>(_clock, CacheExpirationOffset);
+            _serviceListCache = new Cache<IEnumerable<ServiceWrapper>>(_clock, CacheExpirationOffset);
+            _partitionListCache = new Cache<IEnumerable<Guid>>(_clock, CacheExpirationOffset);
+            _replicaListCache = new Cache<IEnumerable<ReplicaWrapper>>(_clock, CacheExpirationOffset);
+            _serviceManifestCache = new Cache<string>(_clock, CacheExpirationOffset);
+            _serviceManifestNameCache = new Cache<string>(_clock, CacheExpirationOffset);
+            _propertiesCache = new Cache<IDictionary<string, string>>(_clock, CacheExpirationOffset);
         }
 
         public async Task<IEnumerable<ApplicationWrapper>> GetApplicationListAsync(CancellationToken cancellation)
@@ -140,76 +140,81 @@ namespace Microsoft.ReverseProxy.ServiceFabric
 
         public void ReportHealth(HealthReport healthReport, HealthReportSendOptions sendOptions)
         {
-            _operationLogger.Execute(
-                $"{ConfigurationValues.ExtensionName}.ServiceFabric.ReportHealth",
-                () =>
-                {
-                    var operationContext = _operationLogger.Context;
-                    operationContext?.SetProperty("kind", healthReport.Kind.ToString());
-                    operationContext?.SetProperty("healthState", healthReport.HealthInformation.HealthState.ToString());
-                    switch (healthReport)
-                    {
-                        case ServiceHealthReport service:
-                            operationContext?.SetProperty("serviceName", service.ServiceName.ToString());
-                            break;
-                        default:
-                            operationContext?.SetProperty("type", healthReport.GetType().FullName);
-                            break;
-                    }
+            //_operationLogger.Execute(
+            //    $"{ConfigurationValues.ExtensionName}.ServiceFabric.ReportHealth",
+            //    () =>
+            //    {
+            //        var operationContext = _operationLogger.Context;
+            //        operationContext?.SetProperty("kind", healthReport.Kind.ToString());
+            //        operationContext?.SetProperty("healthState", healthReport.HealthInformation.HealthState.ToString());
+            //        switch (healthReport)
+            //        {
+            //            case ServiceHealthReport service:
+            //                operationContext?.SetProperty("serviceName", service.ServiceName.ToString());
+            //                break;
+            //            default:
+            //                operationContext?.SetProperty("type", healthReport.GetType().FullName);
+            //                break;
+            //        }
 
-                    _healthClientWrapper.ReportHealth(healthReport, sendOptions);
-                });
+            //        _healthClientWrapper.ReportHealth(healthReport, sendOptions);
+            //    });
+            Uri serviceName = null;
+            if (healthReport is ServiceHealthReport service)
+            {
+                serviceName = service.ServiceName;
+            }
+            _logger.LogDebug($"Reporting health, kind='{healthReport.Kind}', healthState='{healthReport.HealthInformation.HealthState}', type='{healthReport.GetType().FullName}', serviceName='{serviceName}'");
+
+            _healthClientWrapper.ReportHealth(healthReport, sendOptions);
+        }
+
+        public void CleanUpExpired()
+        {
+            _applicationListCache.Cleanup();
+            _serviceListCache.Cleanup();
+            _partitionListCache.Cleanup();
+            _replicaListCache.Cleanup();
+            _serviceManifestCache.Cleanup();
+            _serviceManifestNameCache.Cleanup();
+            _propertiesCache.Cleanup();
         }
 
         private async Task<T> TryWithCacheFallbackAsync<T>(string operationName, Func<Task<T>> func, Cache<T> cache, string key, CancellationToken cancellation)
         {
-            return await _operationLogger.ExecuteAsync(
-                operationName + ".Cache",
-                async () =>
+            _logger.LogDebug($"Starting operation '{operationName}'.Cache, key='{key}'");
+            
+            var outcome = "UnhandledException";
+            try
+            {
+                _logger.LogDebug($"Starting inner operation '{operationName}', key='{key}'");
+                var value = await func();
+                cache.Set(key, value);
+                outcome = "Success";
+                return value;
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                outcome = "Canceled";
+                throw;
+            }
+            catch (Exception)
+            {
+                if (cache.TryGetValue(key, out var value))
                 {
-                    var operationContext = _operationLogger.Context;
-                    operationContext?.SetProperty("key", key);
-
-                    // TODO: trigger async cache cleanup before SF call
-                    var outcome = "UnhandledException";
-                    try
-                    {
-                        var value = await _operationLogger.ExecuteAsync(
-                            operationName,
-                            () =>
-                            {
-                                var innerOperationContext = _operationLogger.Context;
-                                innerOperationContext?.SetProperty("key", key);
-
-                                return func();
-                            });
-                        cache.Set(key, value);
-                        outcome = "Success";
-                        return value;
-                    }
-                    catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-                    {
-                        outcome = "Canceled";
-                        throw;
-                    }
-                    catch (Exception) // TODO: davidni: not fatal?
-                    {
-                        if (cache.TryGetValue(key, out var value))
-                        {
-                            outcome = "CacheFallback";
-                            return value;
-                        }
-                        else
-                        {
-                            outcome = "Error";
-                            throw;
-                        }
-                    }
-                    finally
-                    {
-                        operationContext?.SetProperty("outcome", outcome);
-                    }
-                });
+                    outcome = "CacheFallback";
+                    return value;
+                }
+                else
+                {
+                    outcome = "Error";
+                    throw;
+                }
+            }
+            finally
+            {
+                _logger.LogInformation($"Operation '{operationName}'.Cache completed with key='{key}', outcome='{outcome}'");
+            }
         }
     }
 }

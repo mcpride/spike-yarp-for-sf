@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.ReverseProxy" Version="1.0.0-preview.6.20513.1" />
+    <PackageReference Include="Microsoft.ReverseProxy" Version="1.0.0-preview.8.21065.1" />
     <PackageReference Include="Microsoft.ServiceFabric" Version="7.1.417" />
     <PackageReference Include="Microsoft.ServiceFabric.Services" Version="4.1.417" />
   </ItemGroup>

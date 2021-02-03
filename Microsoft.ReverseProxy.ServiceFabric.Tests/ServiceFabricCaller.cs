@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.ReverseProxy.ServiceFabric.Tests
 {
-    internal class ServiceFabricCaller: IServiceFabricCaller
+    internal class ServiceFabricCaller: ICachedServiceFabricCaller
     {
         private readonly IQueryClientWrapper _queryClientWrapper;
         private readonly IServiceManagementClientWrapper _serviceManagementClientWrapper;
@@ -57,6 +57,11 @@ namespace Microsoft.ReverseProxy.ServiceFabric.Tests
         }
 
         public void ReportHealth(HealthReport healthReport, HealthReportSendOptions sendOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CleanUpExpired()
         {
             throw new NotImplementedException();
         }

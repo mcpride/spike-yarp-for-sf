@@ -3,13 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Fabric;
 using System.Fabric.Query;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.ReverseProxy.Utilities;
 
 namespace Microsoft.ReverseProxy.ServiceFabric
 {
@@ -25,11 +25,11 @@ namespace Microsoft.ReverseProxy.ServiceFabric
         /// <summary>
         /// Initializes a new instance of the <see cref="QueryClientWrapper"/> class.
         /// </summary>
-        public QueryClientWrapper(ILogger<QueryClientWrapper> logger)
+        public QueryClientWrapper(ILogger<QueryClientWrapper> logger, IFabricClientWrapper fabricClientWrapper)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            _queryClient = new FabricClient().QueryManager;
+            _queryClient = fabricClientWrapper.FabricClient.QueryManager;
         }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
             ApplicationList previousResult = null;
 
             // Set up the counter that record the time lapse.
-            var stopWatch = Stopwatch.StartNew();
+            var stopWatch = ValueStopwatch.StartNew();
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -114,7 +114,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
             ServiceList previousResult = null;
 
             // Set up the counter that record the time lapse.
-            var stopWatch = Stopwatch.StartNew();
+            var stopWatch = ValueStopwatch.StartNew();
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -182,7 +182,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
             ServicePartitionList previousResult = null;
 
             // Set up the counter that record the time lapse.
-            var stopWatch = Stopwatch.StartNew();
+            var stopWatch = ValueStopwatch.StartNew();
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -218,7 +218,7 @@ namespace Microsoft.ReverseProxy.ServiceFabric
             ServiceReplicaList previousResult = null;
 
             // Set up the counter that record the time lapse.
-            var stopWatch = Stopwatch.StartNew();
+            var stopWatch = ValueStopwatch.StartNew();
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();

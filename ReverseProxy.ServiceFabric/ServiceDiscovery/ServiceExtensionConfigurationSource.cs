@@ -8,13 +8,13 @@ namespace Microsoft.ReverseProxy.ServiceFabric
     internal class ServiceExtensionConfigurationSource : IConfigurationSource
     {
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IServiceFabricCaller _serviceFabricCaller;
+        private readonly ICachedServiceFabricCaller _serviceFabricCaller;
         private readonly TimeSpan _discoveryPeriod;
         private readonly CancellationToken _cancellationToken;
 
         public ServiceExtensionConfigurationSource(
             ILoggerFactory loggerFactory,
-            IServiceFabricCaller serviceFabricCaller,
+            ICachedServiceFabricCaller serviceFabricCaller,
             TimeSpan discoveryPeriod,
             CancellationToken cancellationToken)
         {

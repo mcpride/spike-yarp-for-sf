@@ -22,14 +22,14 @@ namespace Microsoft.ReverseProxy.ServiceFabric
         internal static readonly XNamespace XNSFabricNoSchema = "http://schemas.microsoft.com/2015/03/fabact-no-schema";
 
         private readonly ILogger<ServiceExtensionLabelsProvider> _logger;
-        private readonly IServiceFabricCaller _serviceFabricCaller;
+        private readonly ICachedServiceFabricCaller _serviceFabricCaller;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceExtensionLabelsProvider"/> class.
         /// </summary>
         public ServiceExtensionLabelsProvider(
             ILogger<ServiceExtensionLabelsProvider> logger,
-            IServiceFabricCaller serviceFabricCaller)
+            ICachedServiceFabricCaller serviceFabricCaller)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _serviceFabricCaller = serviceFabricCaller ?? throw new ArgumentNullException(nameof(serviceFabricCaller));

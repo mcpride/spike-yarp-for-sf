@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.ReverseProxy.Service;
 
 namespace Microsoft.ReverseProxy.ServiceFabric
@@ -14,20 +15,46 @@ namespace Microsoft.ReverseProxy.ServiceFabric
     public static class ServiceFabricServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds the services needed to integrate Service Fabric with the Island Gateway to Dependency Injection.
+        /// Uses Service Fabric dynamic service discovery as the configuration source for the Proxy
+        /// via a specific implementation of <see cref="IProxyConfigProvider" />.
         /// </summary>
-        public static IReverseProxyBuilder AddServiceFabricDiscovery(this IReverseProxyBuilder builder)
+        public static IReverseProxyBuilder LoadFromServiceFabric(this IReverseProxyBuilder builder, IConfiguration configuration)
         {
+            _ = configuration ?? throw new ArgumentNullException(nameof(configuration));
+
+            AddServices(builder);
+
+            builder.Services.Configure<ServiceFabricDiscoveryOptions>(configuration);
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Uses Service Fabric dynamic service discovery as the configuration source for the Proxy
+        /// via a specific implementation of <see cref="IProxyConfigProvider" />.
+        /// </summary>
+        public static IReverseProxyBuilder LoadFromServiceFabric(this IReverseProxyBuilder builder, Action<ServiceFabricDiscoveryOptions> configureOptions)
+        {
+            _ = configureOptions ?? throw new ArgumentNullException(nameof(configureOptions));
+
+            AddServices(builder);
+
+            builder.Services.Configure(configureOptions);
+
+            return builder;
+        }
+
+        private static void AddServices(IReverseProxyBuilder builder)
+        {
+            builder.Services.AddSingleton<IFabricClientWrapper, FabricClientWrapper>();
             builder.Services.AddSingleton<IQueryClientWrapper, QueryClientWrapper>();
             builder.Services.AddSingleton<IPropertyManagementClientWrapper, PropertyManagementClientWrapper>();
             builder.Services.AddSingleton<IServiceManagementClientWrapper, ServiceManagementClientWrapper>();
             builder.Services.AddSingleton<IHealthClientWrapper, HealthClientWrapper>();
-            builder.Services.AddSingleton<IServiceFabricCaller, CachedServiceFabricCaller>();
+            builder.Services.AddSingleton<ICachedServiceFabricCaller, CachedServiceFabricCaller>();
             builder.Services.AddSingleton<IServiceExtensionLabelsProvider, ServiceExtensionLabelsProvider>();
             builder.Services.AddSingleton<IDiscoverer, Discoverer>();
             builder.Services.AddSingleton<IProxyConfigProvider, ServiceFabricConfigProvider>();
-
-            return builder;
         }
     }
 }
